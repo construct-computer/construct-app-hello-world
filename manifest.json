@@ -1,6 +1,6 @@
 {
   "id": "devtools",
-  "name": "DevTools",
+  "name": "[SAMPLE] DevTools",
   "version": "1.0.0",
   "description": "Reference app for the Construct platform — a developer toolkit demonstrating MCP tools, reactive UI, and the Construct SDK.",
   "author": {
