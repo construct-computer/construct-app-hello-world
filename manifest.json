@@ -2,7 +2,7 @@
   "id": "devtools",
   "name": "DevTools",
   "version": "1.0.0",
-  "description": "Developer toolkit with JSON formatter, Base64, hashing, UUID generator, timestamps, and URL encoding.",
+  "description": "Reference app for the Construct platform — a developer toolkit demonstrating MCP tools, reactive UI, and the Construct SDK.",
   "author": {
     "name": "Construct Team",
     "url": "https://construct.computer"
@@ -21,7 +21,7 @@
     "minHeight": 500
   },
   "categories": ["developer-tools"],
-  "tags": ["developer", "json", "base64", "hash", "uuid", "tools", "utilities"],
+  "tags": ["reference", "sample", "developer", "json", "base64", "hash", "uuid", "tools"],
   "tools": [
     { "name": "json_format", "description": "Format, minify, or validate a JSON string" },
     { "name": "base64", "description": "Encode or decode a Base64 string" },

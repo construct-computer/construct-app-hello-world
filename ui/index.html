@@ -4,8 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DevTools</title>
+
+  <!--
+    PATTERN: Load the Construct SDK.
+    construct.css gives you the platform design system (colors, buttons, cards, etc.)
+    construct.js gives you the bridge to call MCP tools and control the window.
+  -->
   <link rel="stylesheet" href="/api/sdk/construct.css">
   <script src="/api/sdk/construct.js"></script>
+
+  <!--
+    App-specific styles. Use CSS variables from construct.css (--c-bg, --c-surface,
+    --c-text, --c-accent, etc.) so your app automatically matches light/dark theme.
+  -->
   <style>
     .tabs { display: flex; gap: 2px; margin-bottom: 16px; background: var(--c-surface); border-radius: var(--c-radius-md); padding: 3px; overflow-x: auto; }
     .tab { padding: 7px 12px; border-radius: var(--c-radius-sm); font-size: 12px; font-weight: 500; color: var(--c-text-muted); cursor: pointer; border: none; background: none; white-space: nowrap; transition: all 0.15s; font-family: var(--c-font); }
@@ -22,9 +33,6 @@
     .output.has-error { color: var(--c-error); border-color: var(--c-error-border); background: var(--c-error-muted); }
     .output.loading { color: var(--c-text-muted); }
     .tool-label { font-size: 11px; font-weight: 500; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .inline-opts { display: flex; gap: 8px; align-items: center; }
-    .inline-opts label { font-size: 12px; color: var(--c-text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px; }
-    .inline-opts input[type="radio"] { accent-color: var(--c-accent); }
     select { padding: 6px 10px; border-radius: var(--c-radius-sm); border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-text); font-size: 12px; font-family: var(--c-font); }
     select:focus { outline: none; border-color: var(--c-accent); }
     .copy-btn { position: absolute; top: 6px; right: 6px; padding: 3px 8px; font-size: 10px; border-radius: var(--c-radius-xs); background: var(--c-surface-hover); border: 1px solid var(--c-border); color: var(--c-text-muted); cursor: pointer; font-family: var(--c-font); }
@@ -38,6 +46,11 @@
   </style>
 </head>
 <body>
+  <!--
+    PATTERN: App layout.
+    Wrap everything in .app > .container. The "fade-in" class is from
+    construct.css and gives a smooth entry animation.
+  -->
   <div class="app">
     <div class="container fade-in" style="padding: 16px;">
 
@@ -55,9 +68,11 @@
         <div class="tool-area">
           <div class="header-row">
             <h2>JSON Formatter</h2>
+            <!-- PATTERN: Use "badge badge-accent" from construct.css for labels -->
             <span class="badge badge-accent">Format · Minify · Validate</span>
           </div>
           <textarea id="json-input" placeholder='Paste JSON here, e.g. {"name":"Construct","version":1}' spellcheck="false"></textarea>
+          <!-- PATTERN: Use "btn" and "btn-secondary" from construct.css -->
           <div class="btn-row">
             <button class="btn btn-sm" id="json-format">Format</button>
             <button class="btn-secondary btn-sm" id="json-minify">Minify</button>
@@ -175,18 +190,20 @@
   </div>
 
   <script>
-    // ── Tab switching ──
+    // ── Tab switching (plain DOM — no SDK needed for this) ──
     document.querySelectorAll('.tab').forEach(function(tab) {
       tab.addEventListener('click', function() {
         document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
         document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
         tab.classList.add('active');
         document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-        construct.ui.setTitle('DevTools — ' + tab.textContent);
+
+        // PATTERN: construct.ui.setTitle() — update the window title bar
+        construct.ui.setTitle('DevTools \u2014 ' + tab.textContent);
       });
     });
 
-    // ── Copy buttons ──
+    // ── Copy to clipboard (plain DOM) ──
     document.querySelectorAll('.copy-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var target = document.getElementById(btn.dataset.copy);
@@ -199,7 +216,7 @@
       });
     });
 
-    // ── Helpers ──
+    // ── Output helpers ──
     function setOutput(id, text, isError) {
       var el = document.getElementById(id);
       el.textContent = text;
@@ -211,7 +228,19 @@
       el.className = 'output loading';
     }
 
-    // ── JSON ──
+    // ────────────────────────────────────────────────────────────────────────
+    // PATTERN: Calling MCP tools from the GUI
+    //
+    //   construct.tools.callText(toolName, args)
+    //
+    // This sends a tools/call request through the Construct bridge to your
+    // MCP server (server.ts) and returns the first text content as a string.
+    // It's async — use await or .then().
+    //
+    // For the full response object, use construct.tools.call() instead.
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── JSON tool ──
     document.getElementById('json-format').addEventListener('click', async function() {
       var input = document.getElementById('json-input').value;
       if (!input.trim()) return;
@@ -240,7 +269,7 @@
       } catch (e) { setOutput('json-output', e.message, true); }
     });
 
-    // ── Base64 ──
+    // ── Base64 tool ──
     document.getElementById('b64-encode').addEventListener('click', async function() {
       var input = document.getElementById('b64-input').value;
       if (!input) return;
@@ -260,7 +289,7 @@
       } catch (e) { setOutput('b64-output', e.message, true); }
     });
 
-    // ── Hash ──
+    // ── Hash tool ──
     document.getElementById('hash-go').addEventListener('click', async function() {
       var input = document.getElementById('hash-input').value;
       if (!input) return;
@@ -272,7 +301,7 @@
       } catch (e) { setOutput('hash-output', e.message, true); }
     });
 
-    // ── UUID ──
+    // ── UUID tool ──
     document.getElementById('uuid-go').addEventListener('click', async function() {
       var count = parseInt(document.getElementById('uuid-count').value) || 5;
       setLoading('uuid-output');
@@ -282,7 +311,7 @@
       } catch (e) { setOutput('uuid-output', e.message, true); }
     });
 
-    // ── Timestamp ──
+    // ── Timestamp tool ──
     document.getElementById('ts-go').addEventListener('click', async function() {
       var input = document.getElementById('ts-input').value;
       setLoading('ts-output');
@@ -302,7 +331,7 @@
       document.getElementById('ts-go').click();
     });
 
-    // ── URL Encode ──
+    // ── URL Encode tool ──
     document.getElementById('url-encode').addEventListener('click', async function() {
       var input = document.getElementById('url-input').value;
       if (!input) return;
@@ -322,9 +351,11 @@
       } catch (e) { setOutput('url-output', e.message, true); }
     });
 
-    // ── Init ──
+    // ── PATTERN: construct.ready() ──────────────────────────────────────
+    // Runs your callback once both the DOM and the Construct bridge are
+    // ready. Always use this instead of DOMContentLoaded.
     construct.ready(function() {
-      construct.ui.setTitle('DevTools — JSON');
+      construct.ui.setTitle('DevTools \u2014 JSON');
     });
   </script>
 </body>

@@ -1,93 +1,174 @@
-# DevTools
+# DevTools — Construct Sample App
 
-A developer toolkit for the [Construct](https://construct.computer) platform. Provides six commonly-needed utilities through both an MCP server (usable by the AI assistant) and a tabbed GUI.
+> **This is the reference app for [Construct](https://construct.computer).** Use it as a starting point for building your own apps. Every pattern you need is demonstrated here.
 
-![DevTools](icon.png)
+A developer toolkit with six tools: JSON formatter, Base64, hash generator, UUID generator, timestamp converter, and URL encoder. Each tool works through both the AI assistant (via MCP) and a visual GUI.
 
-## Tools
+## Quick Start — Build Your Own App
 
-| Tool | Description |
-|------|-------------|
-| **JSON Formatter** | Format, minify, or validate JSON. Detects structure (object/array), reports key count and minified size. |
-| **Base64** | Encode text to Base64 or decode Base64 back to text. Handles UTF-8 correctly. |
-| **Hash** | Generate cryptographic hashes (SHA-256, SHA-1, SHA-384, SHA-512) of any text input. |
-| **UUID** | Generate v4 UUIDs. Supports batch generation up to 50 at a time. |
-| **Timestamp** | Convert between Unix timestamps (seconds or milliseconds) and ISO 8601 dates. Shows UTC, relative time, and both unix formats. |
-| **URL Encode** | URL-encode or decode strings. Uses standard `encodeURIComponent` / `decodeURIComponent`. |
-
-## How it works
-
-### Architecture
-
-DevTools is a Construct app that follows the MCP (Model Context Protocol) pattern:
+Copy this repo's structure. A Construct app needs three things:
 
 ```
-┌─────────────┐     stdio      ┌──────────────┐
-│  Construct   │ ◄────────────► │  server.ts   │
-│  Platform    │  JSON-RPC      │  (Deno)      │
-└──────┬──────┘                 └──────────────┘
-       │
-       │ postMessage
-       │
-┌──────▼──────┐
-│  ui/        │
-│  index.html │
-│  (iframe)   │
-└─────────────┘
+my-app/
+├── manifest.json     ← Metadata, tools, permissions
+├── server.ts         ← MCP server (Deno, reads stdin, writes stdout)
+└── ui/index.html     ← Optional GUI (loaded in a sandboxed iframe)
 ```
 
-- **`server.ts`** — An MCP server that runs as a Deno subprocess. It reads JSON-RPC requests from stdin and writes responses to stdout. This is the backend — it exposes all six tools to both the AI assistant and the GUI.
-
-- **`ui/index.html`** — A static HTML interface served in a sandboxed iframe. It communicates with the MCP server through Construct's postMessage bridge (`construct.tools.callText()`). No build step, no framework — just vanilla HTML, CSS, and JavaScript using the Construct SDK.
-
-- **`manifest.json`** — Declares the app's metadata, tools, permissions, UI dimensions, and runtime requirements. The Construct platform reads this to know how to launch and display the app.
-
-### MCP Protocol
-
-Each tool call follows the JSON-RPC 2.0 protocol over stdio:
+### 1. `manifest.json` — Declare your app
 
 ```json
-→ {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"uuid","arguments":{"count":3}}}
-← {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"f47ac10b-58cc...\n550e8400-e29b...\na987fbc9-4bed..."}]}}
+{
+  "id": "my-app",
+  "name": "My App",
+  "version": "1.0.0",
+  "description": "What your app does in one line.",
+  "author": { "name": "You" },
+  "entry": "server.ts",
+  "runtime": "deno",
+  "transport": "stdio",
+  "icon": "icon.png",
+  "permissions": {},
+  "categories": ["utilities"],
+  "tags": ["example"],
+  "tools": [
+    { "name": "my_tool", "description": "What it does — the AI reads this" }
+  ]
+}
 ```
 
-The AI assistant can call these tools directly in conversation (e.g. "generate 5 UUIDs" or "format this JSON"), and the GUI provides the same tools through a visual interface.
+Required fields: `id`, `name`, `version`, `description`, `entry`, `runtime`, `transport`, `tools`.
 
-### UI
-
-The GUI uses the Construct SDK (`construct.css` + `construct.js`) for styling and platform integration:
-
-- **Tabbed layout** — Switch between tools without page reloads
-- **Copy to clipboard** — One-click copy on every output
-- **Theme sync** — Automatically matches the Construct desktop theme (light/dark)
-- **Glassmorphism** — Semi-transparent surfaces with backdrop blur, matching the platform aesthetic
-
-## Development
-
-### Prerequisites
-
-- [Deno](https://deno.land/) v2.x
-
-### Running locally
-
-The app is designed to run inside the Construct platform. For standalone testing of the MCP server:
-
-```bash
-# Test a tool call
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"uuid","arguments":{"count":3}}}' | deno run server.ts
+Add `ui` if your app has a GUI:
+```json
+"ui": {
+  "type": "static",
+  "entry": "ui/index.html",
+  "width": 560,
+  "height": 620
+}
 ```
 
-### Project structure
+### 2. `server.ts` — Handle tool calls
+
+Your server is a Deno process that speaks JSON-RPC 2.0 over stdio. Three methods are required:
+
+| Method | What to return |
+|---|---|
+| `initialize` | Protocol version + capabilities |
+| `tools/list` | Your tool definitions (name, description, inputSchema) |
+| `tools/call` | The result of running a tool |
+
+Minimal example:
+
+```typescript
+import * as readline from 'node:readline';
+
+const TOOLS = [{
+  name: 'my_tool',
+  description: 'Does something useful.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      input: { type: 'string', description: 'The input' },
+    },
+    required: ['input'],
+  },
+}];
+
+function handleToolCall(name, args) {
+  if (name === 'my_tool') {
+    return { content: [{ type: 'text', text: `Result: ${args.input}` }] };
+  }
+  return { content: [{ type: 'text', text: 'Unknown tool' }], isError: true };
+}
+
+function handleRequest(req) {
+  if (req.id == null) return null; // notification
+  switch (req.method) {
+    case 'initialize':
+      return { jsonrpc: '2.0', id: req.id, result: {
+        protocolVersion: '2024-11-05',
+        capabilities: { tools: {} },
+        serverInfo: { name: 'my-app', version: '1.0.0' },
+      }};
+    case 'tools/list':
+      return { jsonrpc: '2.0', id: req.id, result: { tools: TOOLS } };
+    case 'tools/call':
+      return { jsonrpc: '2.0', id: req.id, result:
+        handleToolCall(req.params.name, req.params.arguments || {}) };
+    default:
+      return { jsonrpc: '2.0', id: req.id,
+        error: { code: -32601, message: 'Method not found' } };
+  }
+}
+
+const rl = readline.createInterface({ input: process.stdin });
+rl.on('line', (line) => {
+  const res = handleRequest(JSON.parse(line));
+  if (res) process.stdout.write(JSON.stringify(res) + '\n');
+});
+```
+
+See [`server.ts`](server.ts) in this repo for a fully annotated version with error handling, async tools, and multiple tool handlers.
+
+### 3. `ui/index.html` — Build the GUI (optional)
+
+Load the Construct SDK, then call your MCP tools through the bridge:
+
+```html
+<link rel="stylesheet" href="/api/sdk/construct.css">
+<script src="/api/sdk/construct.js"></script>
+
+<script>
+  // Call a tool and get the text result
+  var result = await construct.tools.callText('my_tool', { input: 'hello' });
+
+  // Update the window title
+  construct.ui.setTitle('My App — Result');
+
+  // Run code when the SDK is ready
+  construct.ready(function() {
+    // safe to use construct.* here
+  });
+</script>
+```
+
+**SDK features used in this app:**
+
+| Feature | What it does | Used in |
+|---|---|---|
+| `construct.tools.callText(name, args)` | Call an MCP tool, get text result | Every tool button |
+| `construct.ui.setTitle(title)` | Update the window title bar | Tab switching |
+| `construct.ready(fn)` | Run code when SDK + DOM are ready | Init |
+| CSS variables (`--c-bg`, `--c-surface`, etc.) | Theme-aware colors | All styles |
+| `.btn`, `.btn-secondary`, `.badge` | Pre-built components | Buttons, labels |
+| `.fade-in` | Entry animation | Container |
+
+The SDK also supports a **reactive mode** with data-binding directives (`data-bind`, `data-on-click`, `data-show`, etc.) via `construct.app()` — see the [SDK docs](https://construct.computer) for details.
+
+## Project Structure
 
 ```
 construct-app-hello-world/
-├── manifest.json      # App metadata and tool declarations
-├── server.ts          # MCP server (Deno, stdio transport)
-├── icon.png           # App icon
+├── manifest.json      # App metadata — Construct reads this to launch your app
+├── server.ts          # MCP server — handles tool calls from AI + GUI
+├── icon.png           # App icon (256x256)
 ├── ui/
-│   └── index.html     # Tabbed GUI with all six tools
-└── README.md
+│   └── index.html     # GUI — tabbed interface calling tools via the SDK
+├── README.md          # This file
+└── .gitignore
 ```
+
+## Publish to the App Store
+
+1. Push your app to a public GitHub repo
+2. Fork [construct-computer/app-registry](https://github.com/construct-computer/app-registry)
+3. Add `apps/my-app.json` with your repo URL and commit SHA
+4. Open a pull request — CI validates your manifest and code
+5. Once merged, your app appears in the Construct App Store
+
+See the full guide at [registry.construct.computer/publish](https://registry.construct.computer/publish).
 
 ## Credits
 
