@@ -3,82 +3,328 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello World</title>
+  <title>DevTools</title>
   <link rel="stylesheet" href="/api/sdk/construct.css">
   <script src="/api/sdk/construct.js"></script>
+  <style>
+    .tabs { display: flex; gap: 2px; margin-bottom: 16px; background: var(--c-surface); border-radius: var(--c-radius-md); padding: 3px; overflow-x: auto; }
+    .tab { padding: 7px 12px; border-radius: var(--c-radius-sm); font-size: 12px; font-weight: 500; color: var(--c-text-muted); cursor: pointer; border: none; background: none; white-space: nowrap; transition: all 0.15s; font-family: var(--c-font); }
+    .tab:hover { color: var(--c-text-secondary); background: var(--c-surface-hover); }
+    .tab.active { color: var(--c-text); background: var(--c-surface-raised); box-shadow: var(--c-shadow); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .tool-area { display: flex; flex-direction: column; gap: 10px; }
+    textarea { width: 100%; min-height: 100px; resize: vertical; padding: 10px 12px; border-radius: var(--c-radius-sm); border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-text); font-family: var(--c-font-mono); font-size: 12px; line-height: 1.5; box-sizing: border-box; }
+    textarea:focus { outline: none; border-color: var(--c-accent); box-shadow: 0 0 0 2px var(--c-accent-muted); }
+    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .output { padding: 10px 12px; border-radius: var(--c-radius-sm); background: var(--c-surface); border: 1px solid var(--c-border); font-family: var(--c-font-mono); font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; min-height: 40px; color: var(--c-text-secondary); max-height: 200px; overflow-y: auto; }
+    .output.has-result { color: var(--c-text); }
+    .output.has-error { color: var(--c-error); border-color: var(--c-error-border); background: var(--c-error-muted); }
+    .output.loading { color: var(--c-text-muted); }
+    .tool-label { font-size: 11px; font-weight: 500; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .inline-opts { display: flex; gap: 8px; align-items: center; }
+    .inline-opts label { font-size: 12px; color: var(--c-text-secondary); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .inline-opts input[type="radio"] { accent-color: var(--c-accent); }
+    select { padding: 6px 10px; border-radius: var(--c-radius-sm); border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-text); font-size: 12px; font-family: var(--c-font); }
+    select:focus { outline: none; border-color: var(--c-accent); }
+    .copy-btn { position: absolute; top: 6px; right: 6px; padding: 3px 8px; font-size: 10px; border-radius: var(--c-radius-xs); background: var(--c-surface-hover); border: 1px solid var(--c-border); color: var(--c-text-muted); cursor: pointer; font-family: var(--c-font); }
+    .copy-btn:hover { background: var(--c-surface-raised); color: var(--c-text); }
+    .output-wrap { position: relative; }
+    .count-input { width: 60px; padding: 6px 8px; border-radius: var(--c-radius-sm); border: 1px solid var(--c-border); background: var(--c-bg); color: var(--c-text); font-size: 12px; font-family: var(--c-font-mono); }
+    .count-input:focus { outline: none; border-color: var(--c-accent); }
+    .header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .header-row h2 { font-size: 14px; font-weight: 600; margin: 0; color: var(--c-text); }
+    .header-row .badge { font-size: 10px; }
+  </style>
 </head>
 <body>
   <div class="app">
-    <div class="container fade-in">
-      <div class="icon-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="4,7 10,12 4,17"/>
-          <line x1="12" y1="17" x2="20" y2="17"/>
-        </svg>
+    <div class="container fade-in" style="padding: 16px;">
+
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="json">JSON</button>
+        <button class="tab" data-tab="base64">Base64</button>
+        <button class="tab" data-tab="hash">Hash</button>
+        <button class="tab" data-tab="uuid">UUID</button>
+        <button class="tab" data-tab="timestamp">Timestamp</button>
+        <button class="tab" data-tab="url">URL</button>
       </div>
 
-      <h1 class="text-gradient mb-xs">Hello World</h1>
-      <p class="text-muted mb-lg">Reference app for the Construct App Store <span class="badge badge-accent">MCP</span></p>
-
-      <div class="card mb-md">
-        <div class="input-group mb-md">
-          <input type="text" data-bind="name" data-enter="greet" placeholder="Enter your name..." />
-          <button class="btn" data-on-click="greet" data-disabled="loading">Greet</button>
+      <!-- JSON -->
+      <div class="panel active" id="panel-json">
+        <div class="tool-area">
+          <div class="header-row">
+            <h2>JSON Formatter</h2>
+            <span class="badge badge-accent">Format · Minify · Validate</span>
+          </div>
+          <textarea id="json-input" placeholder='Paste JSON here, e.g. {"name":"Construct","version":1}' spellcheck="false"></textarea>
+          <div class="btn-row">
+            <button class="btn btn-sm" id="json-format">Format</button>
+            <button class="btn-secondary btn-sm" id="json-minify">Minify</button>
+            <button class="btn-secondary btn-sm" id="json-validate">Validate</button>
+          </div>
+          <div class="output-wrap">
+            <div class="output" id="json-output">Output will appear here</div>
+            <button class="copy-btn" data-copy="json-output">Copy</button>
+          </div>
         </div>
-        <div class="result" id="result">Type a name and click Greet!</div>
       </div>
 
-      <div class="tools">
-        <button class="btn-secondary btn-sm" data-on-click="echo" data-disabled="loading">Echo</button>
-        <button class="btn-secondary btn-sm" data-on-click="timestamp" data-disabled="loading">Timestamp</button>
+      <!-- Base64 -->
+      <div class="panel" id="panel-base64">
+        <div class="tool-area">
+          <div class="header-row">
+            <h2>Base64</h2>
+            <span class="badge badge-accent">Encode · Decode</span>
+          </div>
+          <textarea id="b64-input" placeholder="Enter text to encode, or Base64 to decode..." spellcheck="false"></textarea>
+          <div class="btn-row">
+            <button class="btn btn-sm" id="b64-encode">Encode</button>
+            <button class="btn-secondary btn-sm" id="b64-decode">Decode</button>
+          </div>
+          <div class="output-wrap">
+            <div class="output" id="b64-output">Output will appear here</div>
+            <button class="copy-btn" data-copy="b64-output">Copy</button>
+          </div>
+        </div>
       </div>
 
-      <p class="footer">Tools are called via MCP through the Construct bridge.</p>
+      <!-- Hash -->
+      <div class="panel" id="panel-hash">
+        <div class="tool-area">
+          <div class="header-row">
+            <h2>Hash Generator</h2>
+          </div>
+          <textarea id="hash-input" placeholder="Enter text to hash..." spellcheck="false"></textarea>
+          <div class="btn-row">
+            <select id="hash-algo">
+              <option value="SHA-256">SHA-256</option>
+              <option value="SHA-1">SHA-1</option>
+              <option value="SHA-384">SHA-384</option>
+              <option value="SHA-512">SHA-512</option>
+            </select>
+            <button class="btn btn-sm" id="hash-go">Generate Hash</button>
+          </div>
+          <div class="output-wrap">
+            <div class="output" id="hash-output">Hash will appear here</div>
+            <button class="copy-btn" data-copy="hash-output">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- UUID -->
+      <div class="panel" id="panel-uuid">
+        <div class="tool-area">
+          <div class="header-row">
+            <h2>UUID Generator</h2>
+            <span class="badge badge-accent">v4</span>
+          </div>
+          <div class="btn-row" style="align-items: center;">
+            <span class="tool-label">Count:</span>
+            <input type="number" class="count-input" id="uuid-count" value="5" min="1" max="50">
+            <button class="btn btn-sm" id="uuid-go">Generate</button>
+          </div>
+          <div class="output-wrap">
+            <div class="output" id="uuid-output">UUIDs will appear here</div>
+            <button class="copy-btn" data-copy="uuid-output">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timestamp -->
+      <div class="panel" id="panel-timestamp">
+        <div class="tool-area">
+          <div class="header-row">
+            <h2>Timestamp Converter</h2>
+          </div>
+          <div class="btn-row" style="align-items:center; gap: 8px;">
+            <input type="text" style="flex:1; padding:8px 10px; border-radius:var(--c-radius-sm); border:1px solid var(--c-border); background:var(--c-bg); color:var(--c-text); font-family:var(--c-font-mono); font-size:12px;" id="ts-input" placeholder="Unix timestamp, ISO date, or leave empty for now">
+            <button class="btn btn-sm" id="ts-go">Convert</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn-secondary btn-sm" id="ts-now">Now</button>
+            <button class="btn-secondary btn-sm" id="ts-today">Today 00:00 UTC</button>
+          </div>
+          <div class="output-wrap">
+            <div class="output" id="ts-output">Conversion results will appear here</div>
+            <button class="copy-btn" data-copy="ts-output">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- URL Encode -->
+      <div class="panel" id="panel-url">
+        <div class="tool-area">
+          <div class="header-row">
+            <h2>URL Encoder</h2>
+            <span class="badge badge-accent">Encode · Decode</span>
+          </div>
+          <textarea id="url-input" placeholder="Enter text to URL-encode, or encoded text to decode..." spellcheck="false"></textarea>
+          <div class="btn-row">
+            <button class="btn btn-sm" id="url-encode">Encode</button>
+            <button class="btn-secondary btn-sm" id="url-decode">Decode</button>
+          </div>
+          <div class="output-wrap">
+            <div class="output" id="url-output">Output will appear here</div>
+            <button class="copy-btn" data-copy="url-output">Copy</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <script>
-    construct.app({
-      state: { name: '', loading: false },
+    // ── Tab switching ──
+    document.querySelectorAll('.tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+        construct.ui.setTitle('DevTools — ' + tab.textContent);
+      });
+    });
 
-      async greet() {
-        var name = this.name.trim() || 'World';
-        this.loading = true;
-        construct.ui.showLoading('result', 'Calling hello tool...');
-        try {
-          var text = await construct.tools.callText('hello', { name: name });
-          construct.ui.showResult('result', text, 'active');
-          construct.ui.setTitle('Hello World \u2014 ' + name);
-        } catch (err) {
-          construct.ui.showResult('result', 'Error: ' + err.message, 'error');
+    // ── Copy buttons ──
+    document.querySelectorAll('.copy-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var target = document.getElementById(btn.dataset.copy);
+        if (target) {
+          navigator.clipboard.writeText(target.textContent).then(function() {
+            btn.textContent = 'Copied!';
+            setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+          });
         }
-        this.loading = false;
-      },
+      });
+    });
 
-      async echo() {
-        var text = this.name.trim() || 'Hello from the GUI!';
-        this.loading = true;
-        construct.ui.showLoading('result', 'Calling echo tool...');
-        try {
-          var out = await construct.tools.callText('echo', { text: text });
-          construct.ui.showResult('result', 'Echo: ' + out, 'active');
-        } catch (err) {
-          construct.ui.showResult('result', 'Error: ' + err.message, 'error');
-        }
-        this.loading = false;
-      },
+    // ── Helpers ──
+    function setOutput(id, text, isError) {
+      var el = document.getElementById(id);
+      el.textContent = text;
+      el.className = 'output' + (isError ? ' has-error' : ' has-result');
+    }
+    function setLoading(id) {
+      var el = document.getElementById(id);
+      el.textContent = 'Processing...';
+      el.className = 'output loading';
+    }
 
-      async timestamp() {
-        this.loading = true;
-        construct.ui.showLoading('result', 'Calling timestamp tool...');
-        try {
-          var out = await construct.tools.callText('timestamp', {});
-          construct.ui.showResult('result', out, 'active');
-        } catch (err) {
-          construct.ui.showResult('result', 'Error: ' + err.message, 'error');
-        }
-        this.loading = false;
-      }
+    // ── JSON ──
+    document.getElementById('json-format').addEventListener('click', async function() {
+      var input = document.getElementById('json-input').value;
+      if (!input.trim()) return;
+      setLoading('json-output');
+      try {
+        var result = await construct.tools.callText('json_format', { json: input, mode: 'format' });
+        setOutput('json-output', result);
+      } catch (e) { setOutput('json-output', e.message, true); }
+    });
+    document.getElementById('json-minify').addEventListener('click', async function() {
+      var input = document.getElementById('json-input').value;
+      if (!input.trim()) return;
+      setLoading('json-output');
+      try {
+        var result = await construct.tools.callText('json_format', { json: input, mode: 'minify' });
+        setOutput('json-output', result);
+      } catch (e) { setOutput('json-output', e.message, true); }
+    });
+    document.getElementById('json-validate').addEventListener('click', async function() {
+      var input = document.getElementById('json-input').value;
+      if (!input.trim()) return;
+      setLoading('json-output');
+      try {
+        var result = await construct.tools.callText('json_format', { json: input, mode: 'validate' });
+        setOutput('json-output', result);
+      } catch (e) { setOutput('json-output', e.message, true); }
+    });
+
+    // ── Base64 ──
+    document.getElementById('b64-encode').addEventListener('click', async function() {
+      var input = document.getElementById('b64-input').value;
+      if (!input) return;
+      setLoading('b64-output');
+      try {
+        var result = await construct.tools.callText('base64', { text: input, mode: 'encode' });
+        setOutput('b64-output', result);
+      } catch (e) { setOutput('b64-output', e.message, true); }
+    });
+    document.getElementById('b64-decode').addEventListener('click', async function() {
+      var input = document.getElementById('b64-input').value;
+      if (!input) return;
+      setLoading('b64-output');
+      try {
+        var result = await construct.tools.callText('base64', { text: input, mode: 'decode' });
+        setOutput('b64-output', result);
+      } catch (e) { setOutput('b64-output', e.message, true); }
+    });
+
+    // ── Hash ──
+    document.getElementById('hash-go').addEventListener('click', async function() {
+      var input = document.getElementById('hash-input').value;
+      if (!input) return;
+      var algo = document.getElementById('hash-algo').value;
+      setLoading('hash-output');
+      try {
+        var result = await construct.tools.callText('hash', { text: input, algorithm: algo });
+        setOutput('hash-output', result);
+      } catch (e) { setOutput('hash-output', e.message, true); }
+    });
+
+    // ── UUID ──
+    document.getElementById('uuid-go').addEventListener('click', async function() {
+      var count = parseInt(document.getElementById('uuid-count').value) || 5;
+      setLoading('uuid-output');
+      try {
+        var result = await construct.tools.callText('uuid', { count: count });
+        setOutput('uuid-output', result);
+      } catch (e) { setOutput('uuid-output', e.message, true); }
+    });
+
+    // ── Timestamp ──
+    document.getElementById('ts-go').addEventListener('click', async function() {
+      var input = document.getElementById('ts-input').value;
+      setLoading('ts-output');
+      try {
+        var result = await construct.tools.callText('timestamp', { value: input });
+        setOutput('ts-output', result);
+      } catch (e) { setOutput('ts-output', e.message, true); }
+    });
+    document.getElementById('ts-now').addEventListener('click', function() {
+      document.getElementById('ts-input').value = '';
+      document.getElementById('ts-go').click();
+    });
+    document.getElementById('ts-today').addEventListener('click', function() {
+      var today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      document.getElementById('ts-input').value = String(Math.floor(today.getTime() / 1000));
+      document.getElementById('ts-go').click();
+    });
+
+    // ── URL Encode ──
+    document.getElementById('url-encode').addEventListener('click', async function() {
+      var input = document.getElementById('url-input').value;
+      if (!input) return;
+      setLoading('url-output');
+      try {
+        var result = await construct.tools.callText('url_encode', { text: input, mode: 'encode' });
+        setOutput('url-output', result);
+      } catch (e) { setOutput('url-output', e.message, true); }
+    });
+    document.getElementById('url-decode').addEventListener('click', async function() {
+      var input = document.getElementById('url-input').value;
+      if (!input) return;
+      setLoading('url-output');
+      try {
+        var result = await construct.tools.callText('url_encode', { text: input, mode: 'decode' });
+        setOutput('url-output', result);
+      } catch (e) { setOutput('url-output', e.message, true); }
+    });
+
+    // ── Init ──
+    construct.ready(function() {
+      construct.ui.setTitle('DevTools — JSON');
     });
   </script>
 </body>
