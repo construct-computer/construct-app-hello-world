@@ -10,7 +10,7 @@
   "entry": "server.ts",
   "runtime": "deno",
   "transport": "stdio",
-  "icon": "icon.svg",
+  "icon": "icon.png",
   "permissions": {},
   "ui": {
     "type": "static",
