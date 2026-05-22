@@ -23,5 +23,51 @@
         "calendar.list_events"
       ]
     }
-  }
+  },
+  "tools": [
+    {
+      "name": "slugify",
+      "description": "Convert a string into a URL-safe slug."
+    },
+    {
+      "name": "word_count",
+      "description": "Count words, characters, and lines in text."
+    },
+    {
+      "name": "json_format",
+      "description": "Format, minify, or validate JSON."
+    },
+    {
+      "name": "base64",
+      "description": "Encode or decode Base64 text."
+    },
+    {
+      "name": "hash",
+      "description": "Generate SHA hashes for text."
+    },
+    {
+      "name": "uuid",
+      "description": "Generate one or more UUIDs."
+    },
+    {
+      "name": "timestamp",
+      "description": "Convert between Unix timestamps and ISO dates."
+    },
+    {
+      "name": "url_encode",
+      "description": "URL-encode or decode text."
+    },
+    {
+      "name": "reverse",
+      "description": "Reverse a string by Unicode code point."
+    },
+    {
+      "name": "send_notification",
+      "description": "Send a desktop notification through Construct."
+    },
+    {
+      "name": "list_upcoming_events",
+      "description": "List upcoming events from the user's primary calendar."
+    }
+  ]
 }
